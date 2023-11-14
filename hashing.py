@@ -46,13 +46,12 @@ def hashInsert(table1, table2, hash1, hash2, key, loopCount, maxLoop):
     return (table1, table2, hash1, hash2, True);
 
 
-
 def cuckooHash():
     # Dummy data for testing
     lowerBound = 1;
     upperBound = 102;
     currSize = 5;  # This is 'r' from the paper
-    sampleAmount = 2 * currSize;  # This is r^2 from the paper, temporarily 2r since idk whats happening...
+    sampleAmount = pow(currSize, 2);  # This is r^2 from the paper
     dataSet = random.sample(range(lowerBound, upperBound), sampleAmount);  # Random sample of keys
     maxLoop = 3 * math.log(len(dataSet), 2);  # Base should be 1 + epsilon, can't access resource tho...
     completed = False; # We will use this variable to determine if we have rehashed in an insertion attempt
