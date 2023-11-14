@@ -3,12 +3,18 @@ import math
 
 largePrime = 7919;
 
-# rehash is the function that manually doubles the size of our tables
+# rehash is the function that manually doubles the size of our tables and creates new hash functions
 def rehash(currSize):
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+    print("WE ARE AT MAXLOOP => REHASHING");
+    print(f'Our current size pre doubling: {currSize}');
     currSize = currSize * 2;
     # Manually we are doubling the size of our tables and setting their lengths with 'None' values
-    table1 = [None] * currSize
-    table2 = [None] * currSize
+    print(f'Our current size post doubling: {currSize}');
+    table1 = [None] * currSize;
+    table2 = [None] * currSize;
+    tableStatePrint(table1, table2);
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
     hash1 = hashInfo();
     hash2 = hashInfo();
     return (table1, table2, hash1, hash2);
@@ -17,33 +23,39 @@ def rehash(currSize):
 # iterations in the current attempted insert
 def hashInsert(table1, table2, hash1, hash2, key, loopCount, maxLoop):
     loopCount += 1;
-    tableStatePrint(table1, table2);
-    index = hash1.hFunc(key, len(table1), largePrime);
-    if(maxLoop > loopCount):   # If we haven't reached the maximum number of attempted inserts...
-        print(f'Insertion Info: Table1 Index = {index}, Key Value = {key}, Current Loop = {loopCount}, maxLoop = {maxLoop}');
-        if table1[index] is None:    # If the index is empty from a rehash or from initial creation we can simply insert the value
-            table1[index] = key;    # Set the value of the index = to our key
-        else:
-            hashInsert(table2, table1, hash2, hash1, table1[index], loopCount, maxLoop);  # If the index isn't empty we recursively call hashInsert again swapping the table we are inserting to as well as the value we are trying to insert
-            table1[index] = key;    # If we have not reached maxLoop we can then travel back through the stack setting our new index values accordingly
-        return (table1, table2);
-    else:   # If we have reached the maximum number of attempted inserts...
-        print("MAX LOOP HAS BEEN REACHED REHASHING")
-        newData = rehash(len(table1));
-        table1 = newData[0];
-        table2 = newData[1];
-        hash1 = newData[2];
-        hash2 = newData[3];
-    return (table1, table2);
+    # The idea of this loop is to attempt insertion in t1, if the index is already taken insert anyways...
+    # Then swap the order of t1, t2, h1, h2 and use the value that was already present in t1 and insert it into our new t1 (t2)
+    # It will oscillate between t1 and t2 if necessary until it reaches maxLoop
+    # If the index of t1 is not taken simply insert and break out of our while loop
+    while loopCount <= maxLoop:
+        tableStatePrint(table1, table2);
+        index = hash1.hFunc(key, len(table1), largePrime);
+        print(f'We are inserting {key} at {index}. This is loop {loopCount} where our maxLoop is {maxLoop}');
+        if table1[index] is None:   # If our table[index] is None we set table[index] = key
+            table1[index] = key;
+            break;
+        elif table1[index] is not None: # If our table[index] isn't None
+            table1[index], key = key, table1[index]; # Sets table1[index] = key, and the next iteration of our key = the original table1[index]
+            # Swap positions of table/hash 1s and 2s
+            table1, table2 = table2, table1;
+            hash1, hash2 = hash2, hash1;
+        loopCount += 1;
+    if loopCount >= maxLoop:    # If our previous while loop
+        table1, table2, hash1, hash2 = rehash(len(table1));
+        return (table1, table2, hash1, hash2, False);
+    return (table1, table2, hash1, hash2, True);
+
+
 
 def cuckooHash():
     # Dummy data for testing
     lowerBound = 1;
     upperBound = 102;
-    currSize = 10;  # This is 'r' from the paper
+    currSize = 5;  # This is 'r' from the paper
     sampleAmount = 2 * currSize;  # This is r^2 from the paper, temporarily 2r since idk whats happening...
     dataSet = random.sample(range(lowerBound, upperBound), sampleAmount);  # Random sample of keys
     maxLoop = 3 * math.log(len(dataSet), 2);  # Base should be 1 + epsilon, can't access resource tho...
+    completed = False; # We will use this variable to determine if we have rehashed in an insertion attempt
 
     table1 = [None] * currSize;  # From the paper both table1, and table2 are of length 'r'
     table2 = [None] * currSize;
@@ -52,12 +64,14 @@ def cuckooHash():
     hash2 = hashInfo();
 
     print(f'Our data set: {*dataSet,}')
+    while completed == False:
+        completed = True;
+        for key in dataSet:
+            table1, table2, hash1, hash2, completed = hashInsert(table1, table2, hash1, hash2, key, 0, maxLoop); # Note that unless completed = False hash1 and hash2 will not change
+            if completed == False:  # If we have rehashed change our hashing functions and restart the process of inserting keys into our new fresh tables
+                break;
 
-    for key in dataSet:
-        newValues = hashInsert(table1, table2, hash1, hash2, key, 0, maxLoop);
-        table1 = newValues[0];
-        table2 = newValues[1];
-
+    tableStatePrint(table1, table2);
 
 
 # hashInfo is a class we will make objects with that will contains h1 and h2 for each hashing instance of our data structure
