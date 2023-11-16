@@ -1,3 +1,3 @@
 import hashing
 
-hashing.cuckooHash();
+hashing.cuckooHash()
